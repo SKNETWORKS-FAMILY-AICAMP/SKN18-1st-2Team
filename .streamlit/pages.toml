@@ -1,0 +1,16 @@
+# .streamlit/pages.toml
+
+[[pages]]
+path = "main.py"
+name = "홈"
+icon = "🏠"
+
+[[pages]]
+path = "pages/car_info.py"
+name = "자동차 정보"
+icon = "🚗"
+
+[[pages]]
+path = "pages/faq_pages.py"
+name = "FAQ"
+icon = "❓"
