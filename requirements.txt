@@ -4,3 +4,4 @@ numpy
 selenium
 pymysql
 matplotlib
+beautifulsoup4
