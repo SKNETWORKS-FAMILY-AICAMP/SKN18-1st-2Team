@@ -1,5 +1,5 @@
-import streamlit as st
 import pymysql 
+import pandas as pd
 
 def get_connection():
     return pymysql.connect(
