@@ -1,16 +1,13 @@
-# .streamlit/pages.toml
+[theme]
+primaryColor="#f63366"
+backgroundColor="#18191a"
+secondaryBackgroundColor="#262730"
+textColor="#fff"
+font="sans serif"
 
-[[pages]]
-path = "main.py"
-name = "홈"
-icon = "🏠"
+[server]
+headless = true
+runOnSave = true
 
-[[pages]]
-path = "pages/car_info.py"
-name = "자동차 정보"
-icon = "🚗"
-
-[[pages]]
-path = "pages/faq_pages.py"
-name = "FAQ"
-icon = "❓"
+[ui]
+hide_sidebar_nav = true

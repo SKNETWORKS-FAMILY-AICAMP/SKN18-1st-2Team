@@ -1,4 +1,7 @@
+streamlit
 pandas
 numpy
-streamlit
-plotly
+selenium
+pymysql
+matplotlib
+beautifulsoup4
