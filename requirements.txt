@@ -5,3 +5,6 @@ selenium
 pymysql
 matplotlib
 beautifulsoup4
+plotly
+pillow
+streamlit-image-coordinates
