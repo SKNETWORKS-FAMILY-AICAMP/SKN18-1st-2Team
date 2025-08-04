@@ -230,6 +230,13 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 
+# # 크롤링 엑셀 파일
+# car_excels/
+# # 크롤링 파일
+# car_registration_stats.csv
+
+
+
 # Windows shortcuts
 *.lnk
 
