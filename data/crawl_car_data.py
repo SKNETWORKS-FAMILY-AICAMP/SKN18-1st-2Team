@@ -48,8 +48,14 @@ def download_single_file_parallel(year, month, download_path, thread_id):
     driver = None
     
     try:
-        # 예상 파일명 생성
-        expected_filename = f"{year}년 {month:02d}월 자동차 등록자료 통계.xlsx"
+        # 예상 파일명 생성 (특별한 경우 처리)
+        if year == 2021 and month == 8:
+            expected_filename = f"{year}년 {month:02d}월 자동차 등록현황 통계.xlsx"
+        elif year == 2021 and month == 9:
+            expected_filename = f"{year}년 {month:02d}월 자동차 등록자료 통계 .xlsx"
+        else:
+            expected_filename = f"{year}년 {month:02d}월 자동차 등록자료 통계.xlsx"
+        
         file_path = os.path.join(download_path, expected_filename)
         
         # 락을 사용하여 중복 다운로드 방지
@@ -59,17 +65,31 @@ def download_single_file_parallel(year, month, download_path, thread_id):
                 print(f"[T{thread_id}] ✓ 스킵: {expected_filename} (다른 스레드에서 처리됨)")
                 return True
             
-            # 이미 파일이 존재하고 크기가 적절하면 스킵
-            if os.path.exists(file_path):
+            # 이미 파일이 존재하고 크기가 적절하면 스킵 (여러 가능한 파일명 체크)
+            possible_files = [
+                f"{year}년 {month:02d}월 자동차 등록자료 통계.xlsx",
+                f"{year}년 {month:02d}월 자동차 등록현황 통계.xlsx",
+                f"{year}년 {month:02d}월 자동차 등록자료 통계 .xlsx"
+            ]
+            
+            existing_file = None
+            for possible_file in possible_files:
+                possible_path = os.path.join(download_path, possible_file)
+                if os.path.exists(possible_path):
+                    existing_file = possible_file
+                    file_path = possible_path
+                    break
+            
+            if existing_file:
                 file_size = os.path.getsize(file_path)
                 if file_size > 10000:  # 10KB 이상인 경우만 유효한 파일로 간주
-                    downloaded_files.add(expected_filename)
-                    print(f"[T{thread_id}] ✓ 스킵: {expected_filename} (이미 존재, {file_size:,} bytes)")
+                    downloaded_files.add(existing_file)
+                    print(f"[T{thread_id}] ✓ 스킵: {existing_file} (이미 존재, {file_size:,} bytes)")
                     return True
                 else:
                     # 파일이 너무 작으면 삭제하고 다시 다운로드
                     os.remove(file_path)
-                    print(f"[T{thread_id}] ⚠ 재시도: {expected_filename} (파일 크기가 너무 작음: {file_size} bytes)")
+                    print(f"[T{thread_id}] ⚠ 재시도: {existing_file} (파일 크기가 너무 작음: {file_size} bytes)")
             
             # 다운로드 중으로 표시
             downloaded_files.add(expected_filename)
@@ -91,8 +111,17 @@ def download_single_file_parallel(year, month, download_path, thread_id):
         
         for link in download_links:
             onclick = link.get_attribute("onclick") or ""
-            if f"{year}년 {month:02d}월 자동차 등록자료 통계.xlsx" in onclick or \
-               f"{year}년 {month}월 자동차 등록자료 통계.xlsx" in onclick:
+            # 여러 파일명 패턴 확인
+            patterns = [
+                f"{year}년 {month:02d}월 자동차 등록자료 통계.xlsx",
+                f"{year}년 {month}월 자동차 등록자료 통계.xlsx",
+                f"{year}년 {month:02d}월 자동차 등록현황 통계.xlsx",  # 2021년 8월
+                f"{year}년 {month}월 자동차 등록현황 통계.xlsx",
+                f"{year}년 {month:02d}월 자동차 등록자료 통계 .xlsx",  # 2021년 9월 (공백 추가)
+                f"{year}년 {month}월 자동차 등록자료 통계 .xlsx"
+            ]
+            
+            if any(pattern in onclick for pattern in patterns):
                 target_link = link
                 break
         
@@ -109,10 +138,10 @@ def download_single_file_parallel(year, month, download_path, thread_id):
         # 링크 클릭
         driver.execute_script("arguments[0].click();", target_link)
         
-        # 다운로드 완료 대기
+        # 다운로드 완료 대기 (32초, 0.5초 간격으로 체크)
         download_complete = False
-        for wait_time in range(30):
-            time.sleep(1)
+        for wait_time in range(64):  # 32초 x 2 (0.5초 간격)
+            time.sleep(0.5)
             files_after = set(os.listdir(download_path)) if os.path.exists(download_path) else set()
             new_files = files_after - files_before
             
@@ -171,7 +200,10 @@ def get_all_links():
             text = link.text.strip()
             onclick = link.get_attribute("onclick") or ""
             
-            if "자동차 등록자료 통계.xlsx" in onclick:
+            # 자동차 등록 관련 xlsx 파일 찾기 (여러 패턴 지원)
+            if ("자동차 등록자료 통계.xlsx" in onclick or 
+                "자동차 등록현황 통계.xlsx" in onclick or 
+                "자동차 등록자료 통계 .xlsx" in onclick):
                 match = re.search(r"(\d{4})년\s*(\d{1,2})월", onclick)
                 if match:
                     year = int(match.group(1))
