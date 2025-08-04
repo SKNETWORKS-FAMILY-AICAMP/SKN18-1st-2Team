@@ -9,5 +9,3 @@ font="sans serif"
 headless = true
 runOnSave = true
 
-[ui]
-hide_sidebar_nav = true
