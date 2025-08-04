@@ -19,3 +19,39 @@ CREATE TABLE IF NOT EXISTS kia_faq_data (
     image_urls TEXT,
     link_urls TEXT
 );
+
+-- 연료별 자동차 등록 대수
+CREATE TABLE IF NOT EXISTS veh_fuel_stats(
+    year varchar(10),
+    sorting varchar(10),
+    total int(30),
+    gasoline int(30),
+    diesel int(30),
+    LPG int(30),
+    hybrid int(30),
+    elec int(30),
+    hydrogen int(30)
+);
+
+
+-- 제조사별 전기차 시장 점유율율
+CREATE TABLE IF NOT EXISTS ev_brand_stats(
+    brand varchar(50),
+    year2021 int(20),
+    year2021_rate varchar(20),
+    year2022 int(20),
+    year2022_rate varchar(20),
+    year2023 int(20),
+    year2023_rate varchar(20),
+    year2024 int(20),
+    year2024_rate varchar(20)
+);
+
+CREATE TABLE IF NOT EXISTS ev_region_stats(
+    region varchar(20),
+    year int(20),
+    elec int(20),
+    hydrogen int(20),
+    hybrid int(20),
+    eco int(20)
+);
