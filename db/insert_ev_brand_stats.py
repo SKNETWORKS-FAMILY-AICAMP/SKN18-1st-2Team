@@ -22,8 +22,8 @@ df = pd.read_csv(csv_path)
 
 for _, row in df.iterrows():
     cursor.execute("""
-        INSERT INTO ev_brand_stats (brand,year2021,year2021_rate,year2022,year2022_rate,year2023,year2023_rate,year2024,year2024_rate)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO ev_brand_stats (brand,year,year_rate)
+        VALUES (%s, %s, %s)
     """, tuple(row))
 conn.commit()
 print("ev_brand_stats 입력 완료")
