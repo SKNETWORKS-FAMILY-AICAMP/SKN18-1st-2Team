@@ -1,5 +1,6 @@
 import pandas as pd
 import pymysql
+import os
 
 conn = pymysql.connect(
     host='localhost',
@@ -13,7 +14,11 @@ cursor = conn.cursor()
 cursor.execute("TRUNCATE TABLE ev_yearly_stats")
 conn.commit()
 
-df = pd.read_csv('../data/ev_yearly_stats_long.csv')   
+# df = pd.read_csv('../data/ev_yearly_stats_long.csv')   
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+csv_path = os.path.join(project_root, "data", "ev_yearly_stats_long.csv")
+df = pd.read_csv(csv_path)
+
 for _, row in df.iterrows():
     cursor.execute("""
         INSERT INTO ev_yearly_stats (year, region, total)
