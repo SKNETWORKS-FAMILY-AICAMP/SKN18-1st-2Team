@@ -4,7 +4,7 @@
 
 # -> data/car_excels 폴더에 엑셀파일 생성 확인
 
-# 3. .\data\excel_to_csv_converter.py 실행하여 csv파일로 변환
+# 3. .\data\excel_to_csv_converter.py 실행하여 csv파일로 변환 (cd data로 들어가서 하지말고 바로 입력!)
 
 # -> car_registration_stats.csv 생성 확인
 
