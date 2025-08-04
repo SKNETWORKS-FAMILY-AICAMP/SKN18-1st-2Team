@@ -26,7 +26,7 @@ def extract_year_month(filename):
 def process_excel_to_csv():
     """모든 엑셀 파일을 CSV로 변환"""
     # 엑셀 파일 경로
-    excel_dir = 'car_excels'
+    excel_dir = 'data/car_excels'
     excel_files = glob(os.path.join(excel_dir, '*.xlsx'))
     excel_files.sort()
     
@@ -83,7 +83,7 @@ def process_excel_to_csv():
     # CSV 파일로 저장
     if all_data:
         df_result = pd.DataFrame(all_data)
-        output_file = 'car_registration_stats.csv'
+        output_file = 'data/car_registration_stats.csv'
         df_result.to_csv(output_file, index=False, encoding='utf-8-sig')
         print(f"\n변환 완료!")
         print(f"저장된 파일: {output_file}")

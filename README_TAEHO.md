@@ -13,3 +13,7 @@
 # -> 변환된 csv파일 확인
 
 # 5. db/insert_car_csv_data.py 실행하여 DB에 삽입해주기.
+
+# -> data/car_registration_stats.csv 생성된거 확인
+
+# 6. # 마지막에 웹앱 실행 streamlit run main.py
