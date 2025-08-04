@@ -8,3 +8,4 @@ beautifulsoup4
 plotly
 pillow
 streamlit-image-coordinates
+pillow
