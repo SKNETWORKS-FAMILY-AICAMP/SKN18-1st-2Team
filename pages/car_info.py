@@ -4,9 +4,27 @@ import pandas as pd
 import plotly.graph_objects as go
 from PIL import Image
 from streamlit_image_coordinates import streamlit_image_coordinates
-from db.db_utils import get_conn
+import pymysql
 
-# ---------------- 지도 좌표 매핑 ----------------
+# ---------------- DB 연결 ----------------
+def get_conn():
+    return pymysql.connect(
+        host="localhost",
+        user="root",
+        password="root1234",
+        database="sknproject1",
+        charset="utf8mb4",
+        autocommit=True
+    )
+
+# ---------------- DB 테이블 로드 ----------------
+def load_table(table_name: str):
+    conn = get_conn()
+    df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
+    conn.close()
+    return df
+
+# ---------------- 좌표 매핑 ----------------
 region_coords_px = {
     "서울": (155,175), "인천": (120,180), "경기": (185,210), "강원": (290,170), 
     "세종": (190,308), "대전": (197,339), "충북": (220,290), "충남": (121,362),
@@ -24,15 +42,17 @@ def get_region_from_click_px(x, y):
             return region
     return None
 
+# ---------------- 지도 이미지 로딩 ----------------
+def load_map_image():
+    """지도 이미지 로드 (pages/map.png)"""
+    map_img_path = os.path.join(os.path.dirname(__file__), "map.png")
+    if not os.path.exists(map_img_path):
+        return None
+    map_img = Image.open(map_img_path)
+    map_img = map_img.resize((500, int(500 * map_img.height / map_img.width)))
+    return map_img
 
-# ---------------- 데이터 처리 ----------------
-def load_table(table_name: str):
-    conn = get_conn()
-    df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
-    conn.close()
-    return df
-
-
+# ---------------- 데이터 전처리 ----------------
 def normalize_percentage(value):
     try:
         val = float(str(value).replace("%", ""))
@@ -42,121 +62,100 @@ def normalize_percentage(value):
     except:
         return 0
 
+def prepare_kia_df(df_brand):
+    kia = df_brand[df_brand["brand"] == "기아 주식회사"].iloc[0]
+    total = df_brand[df_brand["brand"] == "전체합계"].iloc[0]
 
-def process_ev_data():
-    df_region = load_table("ev_region_stats")
-    df_brand = load_table("ev_brand_stats")
-
-    df_region.rename(columns={"region": "지역", "year": "연도", "elec": "전기차 등록 대수"}, inplace=True)
-
-    total_ev_per_year = df_region.groupby("연도")["전기차 등록 대수"].sum()
-    df_region["전국 대비 비율(%)"] = df_region.apply(
-        lambda row: round((row["전기차 등록 대수"] / total_ev_per_year.get(row["연도"], 1)) * 100, 2), axis=1
-    )
-
-    kia_data = df_brand[df_brand["brand"] == "기아 주식회사"].copy()
     kia_df = pd.DataFrame({
         "연도": [2021, 2022, 2023, 2024],
-        "전기차 등록 대수": [kia_data[f"year{y}"].values[0] for y in [2021, 2022, 2023, 2024]],
-        "기아 점유율(%)": [normalize_percentage(kia_data[f"year{y}"].values[0]) for y in [2021, 2022, 2023, 2024]]
+        "전기차 등록 대수": [total[f"year{y}"] for y in range(2021, 2025)],
+        "기아 점유율(%)": [normalize_percentage(kia[f"year{y}_rate"]) for y in range(2021, 2025)]
     })
-
-    return df_region, kia_df
-
+    return kia_df
 
 # ---------------- 차트 ----------------
-def prepare_donut_chart(df):
-    df_2024 = df[df["연도"] == 2024]
-    grouped = df_2024.groupby("지역")["전기차 등록 대수"].sum().reset_index()
+def prepare_donut_chart(df_region):
+    df_2024 = df_region[df_region["year"] == 2024]
+    grouped = df_2024.groupby("region")["elec"].sum().reset_index()
 
     fig = go.Figure(data=[go.Pie(
-        labels=grouped["지역"],
-        values=grouped["전기차 등록 대수"],
+        labels=grouped["region"],
+        values=grouped["elec"],
         hole=0.6,
         textinfo='label+percent',
-        marker=dict(colors=["#C3C3C3"] * len(grouped))
+        marker=dict(colors=["#A0B9F5", "#FF8C42", "#FFD166", "#06D6A0", "#118AB2",
+                            "#EF476F", "#073B4C", "#A29BFE", "#FDCB82", "#CDB4DB", 
+                            "#FFC8DD", "#BDE0FE", "#FFADAD", "#FDFFB6", "#CAFFBF", 
+                            "#9BF6FF", "#A0C4FF"])
     )])
-    fig.update_layout(title_text="지역별 전기차 비율 (2024년)", title_font_size=18)
+    fig.update_layout(title_text="지역별 전기차 비율 (2024년)")
     return fig
-
 
 def prepare_kia_chart(kia_df):
     fig = go.Figure()
-
     fig.add_trace(go.Bar(
         x=kia_df["연도"],
         y=kia_df["전기차 등록 대수"],
         name="전기차 등록대수",
-        marker=dict(color="#E1E8FA"),
-        yaxis="y1"
+        marker=dict(color="#A0B9F5")
     ))
-
     fig.add_trace(go.Scatter(
         x=kia_df["연도"],
         y=kia_df["기아 점유율(%)"],
         name="기아 점유율",
-        mode="lines+markers",
-        marker=dict(color="#8D90FF", size=8),
-        line=dict(color="#8D90FF", width=2),
-        yaxis="y2"
+        mode="lines+markers+text",
+        text=[f"{v}%" for v in kia_df["기아 점유율(%)"]],
+        textposition="top center",
+        line=dict(color="#FF8C42", width=3),
+        marker=dict(size=8)
     ))
-
     fig.update_layout(
         title="기아 전기차 점유율",
         xaxis_title="연도",
-        yaxis=dict(title="등록대수", side="left"),
-        yaxis2=dict(title="기아 점유율(%)", side="right", overlaying="y", range=[0, 100], showgrid=False),
-        legend=dict(orientation="h", x=0.5, y=-0.3),
-        bargap=0.3
-    )
-    return fig
-
-
-def prepare_fuel_chart(df):
-    df["전기차 비율(%)"] = (df["전기차 등록 대수"] / df["전체 차량 등록 대수"] * 100).round(0)
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=df["연도"],
-        y=df["전체 차량 등록 대수"],
-        name="일반차 등록대수",
-        marker=dict(color="#F7EFD1")
-    ))
-    fig.add_trace(go.Bar(
-        x=df["연도"],
-        y=df["전기차 등록 대수"],
-        name="전기차 등록대수",
-        marker=dict(color="#8D90FF")
-    ))
-    for i, row in df.iterrows():
-        fig.add_annotation(
-            x=row["연도"],
-            y=row["전기차 등록 대수"],
-            text=f"{int(row['전기차 비율(%)'])}%",
-            showarrow=False,
-            font=dict(size=14, color="white"),
-            yshift=10
-        )
-
-    fig.update_layout(
-        barmode="stack",
-        title="전기차 등록 비율 (2018~2024년)",
-        xaxis_title="연도",
-        yaxis_title="등록대수",
+        yaxis=dict(title="전기차 등록대수", side="left"),
+        yaxis2=dict(title="기아 점유율(%)", overlaying="y", side="right", range=[0, 100], showgrid=False),
         legend=dict(x=0.5, y=-0.2, orientation="h")
     )
     return fig
 
+def prepare_fuel_chart(df_fuel):
+    df_fuel["전기차 비율(%)"] = (df_fuel["elec"] / df_fuel["total"] * 100).round(0)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=df_fuel["year"], y=df_fuel["total"], name="일반차 등록대수", marker=dict(color="#FFF3C4")
+    ))
+    fig.add_trace(go.Bar(
+        x=df_fuel["year"], y=df_fuel["elec"], name="전기차 등록대수", marker=dict(color="#A0B9F5")
+    ))
+    for _, row in df_fuel.iterrows():
+        fig.add_annotation(
+            x=row["year"], y=row["elec"], text=f"{int(row['전기차 비율(%)'])}%",
+            showarrow=False, font=dict(size=14, color="white"), yshift=10
+        )
+    fig.update_layout(
+        barmode="stack", title="전기차 등록 비율 (2018~2024년)",
+        xaxis_title="연도", yaxis_title="등록대수",
+        legend=dict(x=0.5, y=-0.2, orientation="h")
+    )
+    return fig
 
-# ---------------- 메인 ----------------
+# ---------------- 메인 앱 ----------------
 def show_car_info():
-    st.set_page_config(page_title="전기차 대시보드", layout="wide")
-    st.title(":car: 전기자동차 지역별 등록 분석")
+    st.set_page_config(page_title="전기자동차 지역별 증가 분석", layout="wide")
 
-    df_region, kia_df = process_ev_data()
+    df_region = load_table("ev_region_stats")
+    df_brand = load_table("ev_brand_stats")
     df_fuel = load_table("veh_fuel_stats")
-    df_fuel.rename(columns={"year": "연도", "total": "전체 차량 등록 대수", "elec": "전기차 등록 대수"}, inplace=True)
-    df_fuel = df_fuel[(df_fuel["연도"] >= 2018) & (df_fuel["연도"] <= 2024)]
+
+    kia_df = prepare_kia_df(df_brand)
+
+    map_img = load_map_image()
+    if map_img is None:
+        st.error("지도 이미지를 불러올 수 없습니다.")
+        st.stop()
+
+    if "selected_region" not in st.session_state:
+        st.session_state.selected_region = "전국"
 
     top_left, top_right = st.columns(2)
     with top_left:
@@ -167,28 +166,28 @@ def show_car_info():
     bottom_left, bottom_right = st.columns(2)
     with bottom_left:
         st.markdown("#### 지도에서 지역 선택")
-        map_img_path = os.path.join(os.path.dirname(__file__), "pages", "map.png")
-        if os.path.exists(map_img_path):
-            img = Image.open(map_img_path)
-            img = img.resize((500, int(500 * img.height / img.width)))
-            value = streamlit_image_coordinates(img, key="map_click")
-            if value:
-                region = get_region_from_click_px(value['x'], value['y'])
-                if region:
-                    st.session_state.selected_region = region
-                    st.success(f"{region} 선택됨")
-        else:
-            st.error("지도 이미지를 불러올 수 없습니다.")
+        value = streamlit_image_coordinates(map_img, key="map_click")
+        if value:
+            clicked_region = get_region_from_click_px(value["x"], value["y"])
+            if clicked_region:
+                st.session_state.selected_region = clicked_region
+                st.success(f"{clicked_region} 선택됨")
 
     with bottom_right:
-        selected = st.session_state.get("selected_region", "전국")
         st.markdown(f"""
-            <div style='padding:6px 12px; background:#E0E0E0; border-radius:20px; 
-            font-weight:bold; display:inline-block; margin-bottom:8px;'>
-            {selected}</div> <span style='font-size:18px'>전기차 등록 및 충전소 분석</span>
+            <div style="display:inline-block; padding:6px 12px; background-color:#E0E0E0; 
+            border-radius:20px; font-size:18px; font-weight:bold; color:black;
+            margin-right:12px;">
+                {st.session_state.selected_region}
+            </div>
+            <span style="font-size:20px; white-space: nowrap;">
+                전기자동차 등록 증가와 충전소 설치 현황 변화 분석
+            </span>
         """, unsafe_allow_html=True)
-        st.plotly_chart(prepare_fuel_chart(df_fuel), use_container_width=True)
 
+        df_fuel = df_fuel.rename(columns={"year": "year", "total": "total", "elec": "elec"})
+        df_fuel = df_fuel[(df_fuel["year"] >= 2018) & (df_fuel["year"] <= 2024)]
+        st.plotly_chart(prepare_fuel_chart(df_fuel), use_container_width=True)
 
 if __name__ == "__main__":
     show_car_info()
