@@ -10,12 +10,9 @@ region_coords_px = {
     "광주": (149,500), "전북": (152,444), "전남": (130,545), "제주": (81,715),
     "대구": (339,407), "경북": (325,353), "부산": (385,506), "울산": (416,454), "경남": (272,490)
 }
+region_tolerance_px = {r: 15 for r in region_coords_px}
+region_tolerance_px.update({"강원": 18, "세종": 5, "대전": 10, "제주": 20})
 
-region_tolerance_px = {
-    "서울": 15, "인천": 15, "경기": 15, "강원": 18, "세종": 5, "대전": 10,
-    "충북": 15, "충남": 15, "광주": 15, "전북": 15, "전남": 15, "제주": 20,
-    "대구": 15, "경북": 15, "부산": 15, "울산": 15, "경남": 15
-}
 
 def get_region_from_click_px(x, y):
     """픽셀 좌표 → 지역명 반환"""
@@ -25,29 +22,86 @@ def get_region_from_click_px(x, y):
             return region
     return None
 
+
+# ---------------- 차트 함수 ----------------
 @st.cache_data(ttl=300)
-def prepare_chart_data(filtered_data, mode):
-    """그래프 데이터 준비 (UI 출력 없음)"""
+def prepare_donut_chart(df):
+    """2024년 기준 지역별 전기차 등록 비율 도넛"""
+    df_2024 = df[df["연도"] == 2024]
+    grouped = df_2024.groupby("지역")["전기차 등록 대수"].sum().reset_index()
+    total_ev = grouped["전기차 등록 대수"].sum()
+
+    fig = go.Figure(data=[go.Pie(
+        labels=grouped["지역"],
+        values=grouped["전기차 등록 대수"],
+        hole=0.6,
+        textinfo='label+percent',
+        marker=dict(colors=[
+            "#8E97E3", "#FF8C42", "#FFD166", "#06D6A0", "#118AB2", "#EF476F",
+            "#073B4C", "#A29BFE", "#FDCB82", "#CDB4DB", "#FFC8DD", "#BDE0FE",
+            "#FFADAD", "#FDFFB6", "#CAFFBF", "#9BF6FF", "#A0C4FF"
+        ])
+    )])
+    fig.update_layout(title_text="지역별 전기차 비율 (2024년)")
+    return fig
+
+
+@st.cache_data(ttl=300)
+def prepare_kia_chart(df):
+    """2021~2024 기아 전기차 점유율"""
+    df_filtered = df[(df["연도"] >= 2021) & (df["연도"] <= 2024)]
     fig = go.Figure()
-    avg_ratio = None
-    df_copy = filtered_data.copy()
+    fig.add_trace(go.Bar(
+        x=df_filtered["연도"], y=df_filtered["전기차 등록 대수"], name="전기차 등록대수",
+        marker=dict(color="#8E97E3")
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_filtered["연도"], y=df_filtered["기아 점유율(%)"], name="기아 점유율", 
+        mode="lines+markers", yaxis="y2",
+        line=dict(color="#FF8C42", width=3), marker=dict(color="#FF8C42", size=8)
+    ))
+    fig.update_layout(
+        title="기아 전기차 점유율", xaxis_title="연도", yaxis_title="전기차 등록대수",
+        yaxis2=dict(title="기아 점유율(%)", overlaying="y", side="right")
+    )
+    return fig
 
-    if mode == "누적 데이터":
-        df_copy["전체 차량 등록 대수"] = df_copy["전체 차량 등록 대수"].cumsum()
-        df_copy["전기차 등록 대수"] = df_copy["전기차 등록 대수"].cumsum()
-        fig.add_trace(go.Bar(x=df_copy["연도"], y=df_copy["전체 차량 등록 대수"], name="전체 차량"))
-        fig.add_trace(go.Scatter(x=df_copy["연도"], y=df_copy["전기차 등록 대수"], name="전기차", mode="lines+markers"))
-        avg_ratio = round(df_copy["전국 대비 비율(%)"].mean(), 2)
-    else:
-        fig.add_trace(go.Bar(x=df_copy["연도"], y=df_copy["전체 차량 등록 대수"], name="전체 차량"))
-        fig.add_trace(go.Scatter(x=df_copy["연도"], y=df_copy["전기차 등록 대수"], 
-                                 name="전기차", mode="lines+markers", yaxis="y2"))
-        fig.add_trace(go.Scatter(x=df_copy["연도"], y=df_copy["전국 대비 비율(%)"], 
-                                 name="전국 대비 비율(%)", mode="lines+markers", yaxis="y2"))
-        fig.update_layout(yaxis2=dict(title="전국 대비 비율(%)", overlaying="y", side="right"))
 
-    return fig, avg_ratio
+@st.cache_data(ttl=300)
+def prepare_region_chart(filtered_data):
+    """지역별 전기차 등록 현황 그래프 (비율 라벨 표시)"""
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=filtered_data["연도"], 
+        y=filtered_data["전체 차량 등록 대수"], 
+        name="전체 차량",
+        marker=dict(color="#A0C4FF")
+    ))
+    fig.add_trace(go.Bar(
+        x=filtered_data["연도"], 
+        y=filtered_data["전기차 등록 대수"], 
+        name="전기차 등록대수",
+        marker=dict(color="#8E97E3")
+    ))
 
+    # 비율 라벨 추가
+    for i, row in filtered_data.iterrows():
+        fig.add_annotation(
+            x=row["연도"], y=row["전기차 등록 대수"], 
+            text=f"{row['전국 대비 비율(%)']}%",
+            showarrow=False, font=dict(size=12, color="black"), yshift=10
+        )
+
+    fig.update_layout(
+        barmode="stack",
+        title="지역별 전기차 등록비율 변화",
+        xaxis_title="연도",
+        yaxis_title="등록대수"
+    )
+    return fig
+
+
+# ---------------- 메인 페이지 ----------------
 def show_car_info():
     st.set_page_config(page_title="전기자동차 지역별 증가 분석", layout="wide")
 
@@ -60,7 +114,7 @@ def show_car_info():
         st.error(f"데이터 로딩 오류: {e}")
         st.stop()
 
-    # 지도 이미지 로드
+    # 지도 로드
     map_img = load_map_image()
     if map_img is None:
         st.error("지도 이미지를 불러올 수 없습니다.")
@@ -69,11 +123,17 @@ def show_car_info():
     if "selected_region" not in st.session_state:
         st.session_state.selected_region = "전국"
 
-    col1, col2 = st.columns([0.8, 1.2])
+    # ===== 상단 =====
+    top_left, top_right = st.columns(2)
+    with top_left:
+        st.plotly_chart(prepare_donut_chart(df), use_container_width=True)
+    with top_right:
+        st.plotly_chart(prepare_kia_chart(df), use_container_width=True)
 
-    # 지도 클릭
-    with col1:
-        st.markdown("##### 지도에서 지역 선택")
+    # ===== 하단 =====
+    bottom_left, bottom_right = st.columns(2)
+    with bottom_left:
+        st.markdown("#### 지도에서 지역 선택")
         value = streamlit_image_coordinates(map_img, key="map_click")
         if value:
             clicked_region = get_region_from_click_px(value["x"], value["y"])
@@ -81,38 +141,18 @@ def show_car_info():
                 st.session_state.selected_region = clicked_region
                 st.success(f"{clicked_region} 선택됨")
 
-    # 그래프 영역
-    with col2:
+    with bottom_right:
         region = st.session_state.selected_region
+        filtered = df[(df["지역"] == region) & (df["연도"] >= 2021) & (df["연도"] <= 2024)].copy()
 
-        st.markdown(f"""
-            <div style="display:inline-block; padding:6px 12px; background-color:#8E97E3; 
-            border-radius:20px; font-size:24px; font-weight:bold; color:white;
-            margin-right:12px;">
-                {region}
-            </div>
-            <span style="font-size:20px; white-space: nowrap;">
-                전기자동차 등록 증가와 충전소 설치 현황 변화 분석
-            </span>
-        """, unsafe_allow_html=True)
-
-        filtered = df[
-            (df["지역"] == region) &
-            (df["연도"] >= 2021) &
-            (df["연도"] <= 2024)
-        ].copy()
-
+        # 전국 대비 비율 계산
         filtered["전국 대비 비율(%)"] = filtered.apply(
             lambda row: round((row["전기차 등록 대수"] / total_per_year.get(row["연도"], 1)) * 100, 2)
-            if total_per_year.get(row["연도"], 0) > 0 else 0,
-            axis=1
+            if total_per_year.get(row["연도"], 0) > 0 else 0, axis=1
         )
 
-        chart_fig, avg_ratio = prepare_chart_data(filtered, view_mode)
+        st.plotly_chart(prepare_region_chart(filtered), use_container_width=True)
 
-        if view_mode == "누적 데이터" and avg_ratio is not None:
-            st.metric("전국 대비 평균 비율", f"{avg_ratio}%")
-        st.plotly_chart(chart_fig, use_container_width=True)
 
 if __name__ == "__main__":
     show_car_info()
