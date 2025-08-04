@@ -23,6 +23,24 @@ def load_faq_data():
     conn.close()
     return df
 
+def load_ev_brand_stats():
+    conn = get_conn()
+    df = pd.read_sql("SELECT * FROM ev_brand_stats", conn)
+    conn.close()
+    return df
+
+def load_veh_fuel_stats():
+    conn = get_conn()
+    df = pd.read_sql("SELECT * FROM veh_fuel_stats", conn)
+    conn.close()
+    return df
+
+def load_ev_region_stats():
+    conn = get_conn()
+    df = pd.read_sql("SELECT * FROM ev_region_stats", conn)
+    conn.close()
+    return df
+
 def load_car_registration_stats():
     """자동차 등록 통계 데이터 로드"""
     conn = get_conn()

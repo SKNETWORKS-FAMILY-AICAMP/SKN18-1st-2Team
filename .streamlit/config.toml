@@ -1,0 +1,20 @@
+[server]
+# 성능 최적화 설정
+maxUploadSize = 200
+enableXsrfProtection = false
+enableCORS = false
+
+[browser]
+# 브라우저 최적화
+gatherUsageStats = false
+
+[theme]
+# 테마 최적화
+primaryColor = "#8E97E3"
+backgroundColor = "#f8f9fa"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#262730"
+
+[client]
+# 클라이언트 최적화
+showErrorDetails = false 
