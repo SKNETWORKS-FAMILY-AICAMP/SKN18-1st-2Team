@@ -23,5 +23,6 @@ CREATE TABLE IF NOT EXISTS car_registration_stats (
     year VARCHAR(10),
     month VARCHAR(10),
     region VARCHAR(50),
-    total VARCHAR(50)
+    total VARCHAR(50),
+    PRIMARY KEY (year, month, region)
 );
