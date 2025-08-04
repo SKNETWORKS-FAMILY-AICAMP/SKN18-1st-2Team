@@ -20,6 +20,15 @@ CREATE TABLE IF NOT EXISTS kia_faq_data (
     link_urls TEXT
 );
 
+-- 자동차 등록 통계 테이블
+CREATE TABLE IF NOT EXISTS car_registration_stats (
+    year VARCHAR(10),
+    month VARCHAR(10),
+    region VARCHAR(50),
+    total VARCHAR(50),
+    PRIMARY KEY (year, month, region)
+);
+
 -- 연료별 자동차 등록 대수
 CREATE TABLE IF NOT EXISTS veh_fuel_stats(
     year varchar(10),

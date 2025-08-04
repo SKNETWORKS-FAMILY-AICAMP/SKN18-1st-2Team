@@ -2,6 +2,10 @@ streamlit
 pandas
 numpy
 selenium
+webdriver-manager
 pymysql
 matplotlib
 beautifulsoup4
+requests
+plotly
+openpyxl
