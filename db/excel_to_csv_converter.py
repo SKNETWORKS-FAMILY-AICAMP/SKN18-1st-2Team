@@ -23,11 +23,22 @@ def extract_year_month(filename):
         return year, month
     return None, None
 
+
+def get_project_root():
+    # db/data_process.py 기준으로 상위 폴더(프로젝트 루트) 반환
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 def process_excel_to_csv():
     """모든 엑셀 파일을 CSV로 변환"""
     # 엑셀 파일 경로
-    excel_dir = 'data/car_excels'
+    # excel_dir = 'data/car_excels'
+    # excel_files = glob(os.path.join(excel_dir, '*.xlsx'))
+    ROOT_DIR = get_project_root()
+    print("ROOT_DIR =", ROOT_DIR)
+    excel_dir = os.path.join(ROOT_DIR, 'data', "car_excels")
     excel_files = glob(os.path.join(excel_dir, '*.xlsx'))
+    print("excel_files === " + f"{excel_files}")
+    
     excel_files.sort()
     
     all_data = []
@@ -83,7 +94,12 @@ def process_excel_to_csv():
     # CSV 파일로 저장
     if all_data:
         df_result = pd.DataFrame(all_data)
-        output_file = 'data/car_registration_stats.csv'
+        
+        # output_file = 'data/car_registration_stats.csv'
+        ROOT_DIR = get_project_root()
+        print("ROOT_DIR =", ROOT_DIR)
+        output_file = os.path.join(ROOT_DIR, 'data', "car_registration_stats.csv")
+
         df_result.to_csv(output_file, index=False, encoding='utf-8-sig')
         print(f"\n변환 완료!")
         print(f"저장된 파일: {output_file}")

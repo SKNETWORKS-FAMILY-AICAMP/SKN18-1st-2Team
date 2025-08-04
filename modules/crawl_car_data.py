@@ -11,9 +11,18 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
+def get_project_root():
+    # db/data_process.py 기준으로 상위 폴더(프로젝트 루트) 반환
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
 # 스크립트 위치 기준 저장 경로
-script_dir = os.path.dirname(os.path.abspath(__file__))
-download_dir = os.path.join(script_dir, "car_excels")
+ROOT_DIR = get_project_root()
+
+# script_dir = os.path.dirname(os.path.abspath(__file__))
+# download_dir = os.path.join(script_dir, "data", "car_excels")
+# os.makedirs(download_dir, exist_ok=True)
+
+download_dir = os.path.join(ROOT_DIR, "data", "car_excels")
 os.makedirs(download_dir, exist_ok=True)
 
 # 중복 다운로드 방지를 위한 락과 다운로드 세트
