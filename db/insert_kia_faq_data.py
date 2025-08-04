@@ -1,26 +1,32 @@
 import pandas as pd
 import pymysql
+import os
 
-conn = pymysql.connect(
-    host='localhost',
-    user='root',
-    password='root1234',
-    db='sknproject1',
-    charset='utf8mb4'
-)
-cursor = conn.cursor()
-cursor.execute("TRUNCATE TABLE kia_faq_data")
-conn.commit()
+def insert_faq_data():
+    conn = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='root1234',
+        db='sknproject1',
+        charset='utf8mb4'
+    )
+    cursor = conn.cursor()
+    cursor.execute("TRUNCATE TABLE kia_faq_data")
+    conn.commit()
 
-df = pd.read_csv('../data/kia_faq_data.csv')
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    csv_path = os.path.join(project_root, "data", "kia_faq_data.csv")
+    csv_path = os.path.normpath(csv_path)
+    print("읽는 경로:", csv_path)
 
-# NaN을 None으로 변환
-df = df.where(pd.notnull(df), None)
+    df = pd.read_csv(csv_path)
+    df = df.where(pd.notnull(df), None)
 
-for _, row in df.iterrows():
-    cursor.execute("""
-        INSERT INTO kia_faq_data VALUES (%s, %s, %s, %s, %s)
-    """, tuple(row))
-conn.commit()
-print("kia_faq_data 입력 완료")
-conn.close()
+    for _, row in df.iterrows():
+        cursor.execute("""
+            INSERT INTO kia_faq_data (category, question, answer_text, image_urls, link_urls)
+            VALUES (%s, %s, %s, %s, %s)
+        """, tuple(row))
+    conn.commit()
+    print("kia_faq_data 입력 완료")
+    conn.close()
