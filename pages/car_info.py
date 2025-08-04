@@ -73,7 +73,7 @@ def show_car_info():
 
     # 지도 클릭
     with col1:
-        st.markdown("### 지도에서 지역 선택")
+        st.markdown("##### 지도에서 지역 선택")
         value = streamlit_image_coordinates(map_img, key="map_click")
         if value:
             clicked_region = get_region_from_click_px(value["x"], value["y"])
@@ -96,21 +96,10 @@ def show_car_info():
             </span>
         """, unsafe_allow_html=True)
 
-        st.markdown("""
-            <style>
-            div[data-baseweb="slider"] > div > div > div {
-                background: #8E97E3 !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-
-        start_year, end_year = st.slider("연도 범위", 2019, 2023, (2019, 2023))
-        view_mode = st.radio("보기 방식", ["개별 연도 데이터", "누적 데이터"], horizontal=True)
-
         filtered = df[
             (df["지역"] == region) &
-            (df["연도"] >= start_year) &
-            (df["연도"] <= end_year)
+            (df["연도"] >= 2021) &
+            (df["연도"] <= 2024)
         ].copy()
 
         filtered["전국 대비 비율(%)"] = filtered.apply(
