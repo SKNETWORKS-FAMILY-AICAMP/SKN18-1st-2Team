@@ -96,20 +96,51 @@ def normalize_percentage(value):
     except:
         return 0
 
-def prepare_kia_df(df_brand):
+def prepare_kia_df(df_brand,df_fuel):
     try:
-        kia = df_brand[df_brand["brand"] == "기아 주식회사"].iloc[0]
-        total = df_brand[df_brand["brand"] == "전체합계"].iloc[0]
+        # 데이터 타입 변환 개선
+        df_brand["year"] = pd.to_numeric(df_brand["year"], errors="coerce").fillna(0).astype(int)
+        df_fuel["year"] = pd.to_numeric(df_fuel["year"], errors="coerce").fillna(0).astype(int)
         
-        kia_df = pd.DataFrame({
-            "연도": [2021, 2022, 2023, 2024],
-            "전기차 등록 대수": [total[f"year{y}"] for y in range(2021, 2025)],
-            "기아 점유율(%)": [normalize_percentage(kia[f"year{y}_rate"]) for y in range(2021, 2025)]
+        # year_rate를 숫자로 변환
+        df_brand["year_rate"] = pd.to_numeric(df_brand["year_rate"], errors="coerce").fillna(0)
+
+        # 기아 데이터 필터링
+        kia_df = df_brand[df_brand["brand"] == "기아 주식회사"].sort_values("year")
+        
+        # 데이터가 비어있는지 확인
+        if kia_df.empty:
+            st.warning("기아 데이터를 찾을 수 없습니다.")
+            return pd.DataFrame({
+                "연도": [2021, 2022, 2023, 2024],
+                "전기차 등록 대수": [0, 0, 0, 0],
+                "기아 점유율(%)": [0, 0, 0, 0]
+            })
+        
+        fuel_df = df_fuel.sort_values("year")
+
+        merged_df = pd.merge(
+            fuel_df[['year', 'elec']],
+            kia_df[['year', 'year_rate']],
+            on='year', how='left')
+
+        merged_df = merged_df[(merged_df['year'] >= 2021) & (merged_df['year'] <= 2024)]
+
+        merged_df['kia_count'] = merged_df['elec'] * merged_df['year_rate'] / 100
+        merged_df['kia_ratio_per_year'] = merged_df['kia_count'] / merged_df['elec'] * 100
+        
+        
+        result_df = pd.DataFrame({
+            "연도": merged_df["year"],
+            "전기차 등록 대수": merged_df["elec"].fillna(0),
+            "기아 점유율(%)": merged_df["year_rate"].fillna(0)
         })
-        return kia_df
+        
+        return result_df
+    
     except Exception as e:
         st.error(f"기아 데이터 처리 오류: {e}")
-        # 기본 데이터 반환
+        print(f"오류 상세: {e}")
         return pd.DataFrame({
             "연도": [2021, 2022, 2023, 2024],
             "전기차 등록 대수": [0, 0, 0, 0],
@@ -144,33 +175,67 @@ def prepare_donut_chart(df_region):
         return go.Figure()
 
 def prepare_kia_chart(kia_df):
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=kia_df["연도"],
-        y=kia_df["전기차 등록 대수"],
-        name="전기차 등록대수",
-        marker=dict(color="#EDF0F9")
-    ))
-    fig.add_trace(go.Scatter(
-        x=kia_df["연도"],
-        y=kia_df["기아 점유율(%)"],
-        name="기아 점유율",
-        mode="lines+markers+text",
-        text=[f"{v}%" for v in kia_df["기아 점유율(%)"]],
-        textposition="top center",
-        line=dict(color="#65ADFF", width=3),
-        marker=dict(color="#3665FF", size=8),
-        yaxis="y2"
-    ))
-    fig.update_layout(
-        title="기아 전기차 점유율",
-        xaxis_title="연도",
-        yaxis=dict(title="전기차 등록대수", side="left"),
-        yaxis2=dict(title="기아 점유율(%)", overlaying="y", side="right", 
-        range=[0, 100], tickvals=list(range(0, 101, 10)), showgrid=False),
-        legend=dict(x=0.5, y=-0.2, orientation="h")
-    )
-    return fig
+    try:
+        # 데이터 검증
+        if kia_df.empty:
+            st.warning("기아 차트 데이터가 없습니다.")
+            return go.Figure()
+        
+        # 필수 컬럼 확인
+        required_cols = ["연도", "전기차 등록 대수", "기아 점유율(%)"]
+        if not all(col in kia_df.columns for col in required_cols):
+            st.error("기아 차트 데이터 컬럼이 올바르지 않습니다.")
+            return go.Figure()
+        
+        # 데이터 타입 확인 및 변환
+        kia_df["연도"] = pd.to_numeric(kia_df["연도"], errors="coerce").fillna(0).astype(int)
+        kia_df["전기차 등록 대수"] = pd.to_numeric(kia_df["전기차 등록 대수"], errors="coerce").fillna(0)
+        kia_df["기아 점유율(%)"] = pd.to_numeric(kia_df["기아 점유율(%)"], errors="coerce").fillna(0)
+        
+        # 유효한 데이터만 필터링
+        kia_df = kia_df[kia_df["연도"] > 0].copy()
+        
+        if kia_df.empty:
+            st.warning("유효한 기아 데이터가 없습니다.")
+            return go.Figure()
+
+        # 기아 전기차 대수 계산
+        kia_df["기아 전기차 대수"] = (kia_df["전기차 등록 대수"] * kia_df["기아 점유율(%)"] / 100).round(0)
+
+        fig = go.Figure()
+        
+        # 전체 전기차 등록 대수 (회색)
+        fig.add_trace(go.Bar(
+            x=kia_df["연도"],
+            y=kia_df["전기차 등록 대수"],
+            name="전체 전기차",
+            marker=dict(color="#EDF0F9")
+        ))
+        fig.add_trace(go.Scatter(
+            x=kia_df["연도"],
+            y=kia_df["기아 점유율(%)"],
+            name="기아 점유율",
+            mode="lines+markers+text",
+            text=[f"{v:.1f}%" for v in kia_df["기아 점유율(%)"]],
+            textposition="top center",
+            line=dict(color="#65ADFF", width=3),
+            marker=dict(color="#3665FF", size=8),
+            yaxis="y2"
+        ))
+        fig.update_layout(
+            title="기아 전기차 점유율",
+            xaxis_title="연도",
+            yaxis=dict(title="전기차 등록대수", side="left"),
+            yaxis2=dict(title="연도별 기아 점유율(%)", overlaying="y", side="right", 
+            range=[0, 100], tickvals=list(range(0, 101, 10)), showgrid=False),
+            legend=dict(x=0.5, y=-0.2, orientation="h")
+        )
+        return fig
+        
+    except Exception as e:
+        st.error(f"기아 차트 생성 오류: {e}")
+        print(f"차트 오류 상세: {e}")
+        return go.Figure()
 
 
 
@@ -182,7 +247,7 @@ def show_car_info():
     df_brand = load_ev_brand_stats()
     df_fuel = load_veh_fuel_stats()
 
-    kia_df = prepare_kia_df(df_brand)
+    kia_df = prepare_kia_df(df_brand,df_fuel)
 
     map_img = load_map_image()
     if map_img is None:
