@@ -1,6 +1,7 @@
 import streamlit as st
 from pages.ev_stats import show_ev_stats
 from pages.faq import show_faq
+from pages.tool_page import show_tool_page
 
 st.markdown("""
     <style>
@@ -12,10 +13,14 @@ st.markdown("""
 st.set_page_config(page_title="기업FAQ", layout="wide")
 
 # 기본 Streamlit 사이드바 사용 (변경 X)
-page = st.sidebar.radio("메뉴 선택", ["자동차 등록 현황", "FAQ"])
+page = st.sidebar.radio("메뉴 선택", ["자동차 등록 현황", "FAQ", "데이터 도구"])
 
 # 메인 페이지 분기
 if page == "자동차 등록 현황":
     show_ev_stats()
 elif page == "FAQ":
     show_faq()
+elif page == "데이터 도구":
+    show_tool_page()
+else:
+    st.warning("⚠️ 찾을 수 없는 페이지 입니다. 페이지를 등록해주세요.")
