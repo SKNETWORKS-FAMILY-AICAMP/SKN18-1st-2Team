@@ -1,5 +1,6 @@
 import pandas as pd
 import pymysql
+import os
 
 def insert_faq_data():
     conn = pymysql.connect(
@@ -13,9 +14,12 @@ def insert_faq_data():
     cursor.execute("TRUNCATE TABLE kia_faq_data")
     conn.commit()
 
-    df = pd.read_csv('../data/kia_faq_data.csv')
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    csv_path = os.path.join(project_root, "data", "kia_faq_data.csv")
+    csv_path = os.path.normpath(csv_path)
+    print("읽는 경로:", csv_path)
 
-    # NaN을 None으로 변환
+    df = pd.read_csv(csv_path)
     df = df.where(pd.notnull(df), None)
 
     for _, row in df.iterrows():
