@@ -38,15 +38,22 @@ def calculate_ev_ratio_data():
     ev_df = ev_df.rename(columns={'total': 'electric_cars'})
     ev_df['electric_cars'] = ev_df['electric_cars'].astype(int)
     
-    # 2. 자동차 등록 데이터 로드 (6월 데이터만 필터링)
+    # 2. 자동차 등록 데이터 로드 (각 연도별 최신 월 데이터만 필터링)
     car_df = load_car_registration_stats()
     car_df['month'] = car_df['month'].astype(int)
-    car_june = car_df[car_df['month'] == 6].copy()
-    car_june = car_june[['year', 'region', 'total']].rename(columns={'total': 'general_cars'})
-    car_june['general_cars'] = car_june['general_cars'].astype(int)
+    
+    # 각 연도별 최대 월 찾기
+    max_months = car_df.groupby('year')['month'].max().reset_index()
+    max_months.columns = ['year', 'max_month']
+    
+    # 각 연도별 최신 월 데이터만 필터링
+    car_latest = car_df.merge(max_months, on='year')
+    car_latest = car_latest[car_latest['month'] == car_latest['max_month']].copy()
+    car_latest = car_latest[['year', 'region', 'total']].rename(columns={'total': 'general_cars'})
+    car_latest['general_cars'] = car_latest['general_cars'].astype(int)
     
     # 3. 두 데이터 조인
-    merged_df = pd.merge(car_june, ev_df, on=['year', 'region'], how='inner')
+    merged_df = pd.merge(car_latest, ev_df, on=['year', 'region'], how='inner')
     
     # 4. 전기차 비율 계산
     merged_df['total_cars'] = merged_df['general_cars'] + merged_df['electric_cars']

@@ -162,20 +162,24 @@ def main():
         """, unsafe_allow_html=True)
     
     with col3:
-        total_ev = filtered_df['electric_cars'].sum()
+        # 최신 연도의 전기차 수만 합산 (누적 데이터이므로)
+        latest_year = filtered_df['year'].max()
+        latest_year_data = filtered_df[filtered_df['year'] == latest_year]
+        total_ev = latest_year_data['electric_cars'].sum()
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-value">{total_ev:,}</div>
-            <div class="metric-label">총 전기차 수</div>
+            <div class="metric-label">{latest_year}년 전기차 수</div>
         </div>
         """, unsafe_allow_html=True)
     
     with col4:
-        total_general = filtered_df['general_cars'].sum()
+        # 최신 연도의 일반차 수만 합산 (누적 데이터이므로)
+        total_general = latest_year_data['general_cars'].sum()
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-value">{total_general:,}</div>
-            <div class="metric-label">총 일반차 수</div>
+            <div class="metric-label">{latest_year}년 일반차 수</div>
         </div>
         """, unsafe_allow_html=True)
     

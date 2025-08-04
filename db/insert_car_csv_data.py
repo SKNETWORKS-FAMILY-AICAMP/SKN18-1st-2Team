@@ -27,13 +27,14 @@ def insert_car_data_from_csv():
     
     print(f"CSV 파일 로드 완료: {len(df)}개 레코드")
     
-    # 데이터 삽입
+    # 데이터 삽입 (중복 시 업데이트)
     total_inserted = 0
     
     for _, row in df.iterrows():
         cursor.execute("""
             INSERT INTO car_registration_stats (year, month, region, total)
             VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE total = VALUES(total)
         """, (
             str(row['year']), 
             str(row['month']).zfill(2), 

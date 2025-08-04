@@ -1,7 +1,8 @@
 import os
 import time
 import re
-from concurrent.futures import ProcessPoolExecutor, as_completed
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -14,6 +15,10 @@ from webdriver_manager.chrome import ChromeDriverManager
 script_dir = os.path.dirname(os.path.abspath(__file__))
 download_dir = os.path.join(script_dir, "car_excels")
 os.makedirs(download_dir, exist_ok=True)
+
+# 중복 다운로드 방지를 위한 락과 다운로드 세트
+download_lock = threading.Lock()
+downloaded_files = set()
 
 def get_chrome_driver(download_path):
     """Chrome 드라이버 설정 및 반환"""
@@ -38,15 +43,40 @@ def get_chrome_driver(download_path):
     service = Service(ChromeDriverManager().install())
     return webdriver.Chrome(service=service, options=chrome_options)
 
-def download_files_batch(batch_data):
-    """배치 단위로 파일 다운로드"""
-    batch_idx, links_batch, download_path = batch_data
-    
+def download_single_file_parallel(year, month, download_path, thread_id):
+    """병렬 처리용 단일 파일 다운로드"""
     driver = None
-    results = []
     
     try:
-        # 각 배치마다 별도의 브라우저 인스턴스 생성
+        # 예상 파일명 생성
+        expected_filename = f"{year}년 {month:02d}월 자동차 등록자료 통계.xlsx"
+        file_path = os.path.join(download_path, expected_filename)
+        
+        # 락을 사용하여 중복 다운로드 방지
+        with download_lock:
+            # 이미 다운로드 중이거나 완료된 파일인지 확인
+            if expected_filename in downloaded_files:
+                print(f"[T{thread_id}] ✓ 스킵: {expected_filename} (다른 스레드에서 처리됨)")
+                return True
+            
+            # 이미 파일이 존재하고 크기가 적절하면 스킵
+            if os.path.exists(file_path):
+                file_size = os.path.getsize(file_path)
+                if file_size > 10000:  # 10KB 이상인 경우만 유효한 파일로 간주
+                    downloaded_files.add(expected_filename)
+                    print(f"[T{thread_id}] ✓ 스킵: {expected_filename} (이미 존재, {file_size:,} bytes)")
+                    return True
+                else:
+                    # 파일이 너무 작으면 삭제하고 다시 다운로드
+                    os.remove(file_path)
+                    print(f"[T{thread_id}] ⚠ 재시도: {expected_filename} (파일 크기가 너무 작음: {file_size} bytes)")
+            
+            # 다운로드 중으로 표시
+            downloaded_files.add(expected_filename)
+        
+        print(f"[T{thread_id}] 🔄 시작: {expected_filename}")
+        
+        # 브라우저 생성
         driver = get_chrome_driver(download_path)
         driver.get("https://stat.molit.go.kr/portal/cate/statMetaView.do?hRsId=58")
         
@@ -55,63 +85,64 @@ def download_files_batch(batch_data):
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
         
-        # onclick으로 링크 다시 찾기
+        # onclick으로 링크 찾기
         download_links = driver.find_elements(By.XPATH, "//a[contains(@onclick, 'downFile')]")
-        onclick_to_element = {}
+        target_link = None
         
         for link in download_links:
             onclick = link.get_attribute("onclick") or ""
-            onclick_to_element[onclick] = link
+            if f"{year}년 {month:02d}월 자동차 등록자료 통계.xlsx" in onclick or \
+               f"{year}년 {month}월 자동차 등록자료 통계.xlsx" in onclick:
+                target_link = link
+                break
         
-        print(f"배치 {batch_idx}: {len(links_batch)}개 파일 다운로드 시작")
+        if not target_link:
+            print(f"[T{thread_id}] ✗ 실패: {expected_filename} - 링크를 찾을 수 없음")
+            # 실패 시 다운로드 세트에서 제거
+            with download_lock:
+                downloaded_files.discard(expected_filename)
+            return False
         
-        for idx, (year, month, text, original_onclick) in enumerate(links_batch, 1):
-            try:
-                # onclick으로 해당 링크 찾기
-                target_link = None
-                for onclick, element in onclick_to_element.items():
-                    if f"{year}년 {month:02d}월 자동차 등록자료 통계.xlsx" in onclick or \
-                       f"{year}년 {month}월 자동차 등록자료 통계.xlsx" in onclick:
-                        target_link = element
-                        break
-                
-                if not target_link:
-                    results.append(f"배치 {batch_idx}-{idx}: 링크를 찾을 수 없음")
-                    continue
-                
-                # 다운로드 전 파일 목록 확인
-                files_before = set(os.listdir(download_path)) if os.path.exists(download_path) else set()
-                
-                # 링크 클릭
-                driver.execute_script("arguments[0].click();", target_link)
-                
-                # 다운로드 완료 대기
-                download_complete = False
-                for wait_time in range(30):
-                    time.sleep(1)
-                    files_after = set(os.listdir(download_path)) if os.path.exists(download_path) else set()
-                    new_files = files_after - files_before
-                    
-                    if new_files and not any(f.endswith('.crdownload') for f in files_after):
-                        download_complete = True
-                        new_file = list(new_files)[0]
-                        file_size = os.path.getsize(os.path.join(download_path, new_file))
-                        results.append(f"배치 {batch_idx}-{idx}: {new_file} ({file_size:,} bytes)")
-                        break
-                
-                if not download_complete:
-                    results.append(f"배치 {batch_idx}-{idx}: 시간 초과")
-                
-                # 다음 다운로드 전 잠시 대기
-                time.sleep(1)
-                
-            except Exception as e:
-                results.append(f"배치 {batch_idx}-{idx}: 오류 - {str(e)}")
+        # 다운로드 전 파일 목록 확인
+        files_before = set(os.listdir(download_path)) if os.path.exists(download_path) else set()
         
-        return results
+        # 링크 클릭
+        driver.execute_script("arguments[0].click();", target_link)
+        
+        # 다운로드 완료 대기
+        download_complete = False
+        for wait_time in range(30):
+            time.sleep(1)
+            files_after = set(os.listdir(download_path)) if os.path.exists(download_path) else set()
+            new_files = files_after - files_before
+            
+            if new_files and not any(f.endswith('.crdownload') for f in files_after):
+                new_file = list(new_files)[0]
+                file_size = os.path.getsize(os.path.join(download_path, new_file))
+                
+                # 파일 크기 검증 (10KB 이상이어야 유효)
+                if file_size > 10000:
+                    download_complete = True
+                    print(f"[T{thread_id}] ✓ 완료: {new_file} ({file_size:,} bytes)")
+                    break
+                else:
+                    print(f"[T{thread_id}] ⚠ 파일 크기가 너무 작음: {file_size} bytes, 계속 대기...")
+        
+        if not download_complete:
+            print(f"[T{thread_id}] ✗ 실패: {expected_filename} - 시간 초과")
+            # 실패 시 다운로드 세트에서 제거
+            with download_lock:
+                downloaded_files.discard(expected_filename)
+            return False
+        
+        return True
         
     except Exception as e:
-        return [f"배치 {batch_idx}: 전체 오류 - {str(e)}"]
+        print(f"[T{thread_id}] ✗ 오류: {expected_filename} - {str(e)}")
+        # 실패 시 다운로드 세트에서 제거
+        with download_lock:
+            downloaded_files.discard(expected_filename)
+        return False
     
     finally:
         if driver:
@@ -159,9 +190,40 @@ def get_all_links():
             except:
                 pass
 
+def clean_download_folder():
+    """다운로드 폴더의 임시 파일들 정리"""
+    if not os.path.exists(download_dir):
+        return
+    
+    temp_files = []
+    for file in os.listdir(download_dir):
+        if file.endswith(('.crdownload', '.tmp', '.part')):
+            temp_files.append(file)
+    
+    if temp_files:
+        print(f"임시 파일 {len(temp_files)}개 정리 중...")
+        for temp_file in temp_files:
+            try:
+                os.remove(os.path.join(download_dir, temp_file))
+                print(f"  - 삭제: {temp_file}")
+            except:
+                pass
+
+def download_worker(task_data):
+    """워커 함수 - ThreadPoolExecutor에서 사용"""
+    year, month, thread_id = task_data
+    return download_single_file_parallel(year, month, download_dir, thread_id)
+
 def main():
     print("국토교통부 자동차 등록자료 통계 크롤링 시작 (2020.05 ~ 2025.06)")
-    print("병렬 처리로 5개씩 동시 다운로드합니다...\n")
+    print("4개 스레드로 병렬 다운로드합니다...\n")
+    
+    # 다운로드 폴더 정리
+    clean_download_folder()
+    
+    # 전역 변수 초기화
+    global downloaded_files
+    downloaded_files.clear()
     
     # 모든 링크 수집
     all_links = get_all_links()
@@ -172,29 +234,34 @@ def main():
     
     print(f"총 {len(all_links)}개 파일을 다운로드합니다.\n")
     
-    # 5개씩 배치로 나누기
-    batch_size = 5
-    batches = []
-    for i in range(0, len(all_links), batch_size):
-        batch = all_links[i:i + batch_size]
-        batches.append((i // batch_size + 1, batch, download_dir))
+    # 작업 데이터 준비 (year, month, thread_id)
+    tasks = [(year, month, i % 4 + 1) for i, (year, month, text, onclick) in enumerate(all_links)]
     
-    print(f"{len(batches)}개 배치로 나누어 병렬 처리합니다...\n")
+    # ThreadPoolExecutor로 병렬 다운로드
+    success_count = 0
+    fail_count = 0
     
-    # 병렬 처리 실행
-    with ProcessPoolExecutor(max_workers=5) as executor:
-        future_to_batch = {executor.submit(download_files_batch, batch): batch for batch in batches}
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        # 작업 제출
+        future_to_task = {executor.submit(download_worker, task): task for task in tasks}
         
-        for future in as_completed(future_to_batch):
-            batch = future_to_batch[future]
+        # 결과 수집
+        for future in as_completed(future_to_task):
+            task = future_to_task[future]
+            year, month, thread_id = task
+            
             try:
-                results = future.result()
-                for result in results:
-                    print(result)
+                result = future.result()
+                if result:
+                    success_count += 1
+                else:
+                    fail_count += 1
             except Exception as e:
-                print(f"배치 {batch[0]} 처리 중 오류: {e}")
+                print(f"[T{thread_id}] ✗ 예외 발생: {year}년 {month:02d}월 - {str(e)}")
+                fail_count += 1
     
-    print(f"\n완료! 모든 엑셀 파일이 '{download_dir}' 폴더에 저장되었습니다.")
+    print(f"\n🎉 완료! 성공: {success_count}개, 실패: {fail_count}개")
+    print(f"📁 모든 엑셀 파일이 '{download_dir}' 폴더에 저장되었습니다.")
 
 if __name__ == "__main__":
     main()
