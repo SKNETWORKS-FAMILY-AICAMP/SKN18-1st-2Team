@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import pymysql
+import os
 
 def insert_yearly_ev_data():
     conn = pymysql.connect(
