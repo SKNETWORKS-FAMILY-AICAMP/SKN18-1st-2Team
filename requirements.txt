@@ -7,3 +7,4 @@ pymysql
 matplotlib
 beautifulsoup4
 requests
+plotly
