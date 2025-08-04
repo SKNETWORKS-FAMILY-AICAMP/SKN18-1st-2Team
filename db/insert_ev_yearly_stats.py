@@ -16,7 +16,8 @@ conn.commit()
 df = pd.read_csv('../data/ev_yearly_stats_long.csv')   
 for _, row in df.iterrows():
     cursor.execute("""
-        INSERT INTO ev_yearly_stats VALUES (%s, %s, %s)
+        INSERT INTO ev_yearly_stats (year, region, total)
+        VALUES (%s, %s, %s)
     """, tuple(row))
 conn.commit()
 print("ev_yearly_stats 입력 완료")

@@ -19,7 +19,8 @@ df = df.where(pd.notnull(df), None)
 
 for _, row in df.iterrows():
     cursor.execute("""
-        INSERT INTO kia_faq_data VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO kia_faq_data (category, question, answer_text, image_urls, link_urls)
+        VALUES (%s, %s, %s, %s, %s)
     """, tuple(row))
 conn.commit()
 print("kia_faq_data 입력 완료")
