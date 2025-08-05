@@ -17,15 +17,16 @@ st.markdown("""
 st.set_page_config(page_title="기업FAQ", layout="wide")
 
 # 기본 Streamlit 사이드바 사용 (변경 X)
-page = st.sidebar.radio("메뉴 선택", ["자동차 등록 현황", "전기차 등록현황", "전기차 등록 비율", "전기차 vs 일반차 비율 분석", "FAQ", "데이터 도구"])
+# page = st.sidebar.radio("메뉴 선택", ["자동차 등록 현황", "전기차 등록현황", "전기차 등록 비율", "전기차 vs 일반차 비율 분석", "FAQ", "데이터 도구"])
+page = st.sidebar.radio("메뉴 선택", ["전기차 등록 현황", "전기차 vs 일반차 비율 분석", "FAQ", "데이터 도구"])
 
 # 메인 페이지 분기
-if page == "자동차 등록 현황":
-    show_ev_stats()
-elif page == "전기차 등록현황":
+# if page == "자동차 등록 현황":
+#     show_ev_stats()
+if page == "전기차 등록 현황":
     show_car_info()
-elif page == "전기차 등록 비율":
-    show_ev_rate()
+# elif page == "전기차 등록 비율":
+#     show_ev_rate()
 elif page == "전기차 vs 일반차 비율 분석":
     show_ev_comparison()
 elif page == "FAQ":
