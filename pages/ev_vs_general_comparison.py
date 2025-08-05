@@ -10,7 +10,7 @@ from db.db_utils import calculate_ev_ratio_data
 
 # 페이지 설정
 st.set_page_config(
-    page_title="전기차 vs 일반차 비율 분석",
+    page_title="국내 전기차 지역별 비율 분석",
     layout="wide"
 )
 
@@ -27,6 +27,14 @@ def main():
     # 커스텀 CSS 스타일
     st.markdown("""
     <style>
+    /* 사이드바 폭 늘리기 */
+    .css-1d391kg {
+        width: 350px;
+    }
+    .css-1d391kg .css-1lcbmhc {
+        width: 350px;
+    }
+    
     .main-header {
         font-size: 2.5rem;
         font-weight: 700;
@@ -68,6 +76,75 @@ def main():
         padding: 1.5rem;
         border-radius: 12px;
         border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-header {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #3b82f6;
+        padding-bottom: 0.5rem;
+    }
+    
+    .checkbox-container {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    .checkbox-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        margin: 0.5rem 0;
+    }
+    
+    .checkbox-grid-single {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.3rem;
+        margin: 0.5rem 0;
+    }
+    
+    .checkbox-grid-triple {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.4rem;
+        margin: 0.5rem 0;
+    }
+    
+    /* 체크박스 색상을 파란색으로 변경 */
+    .stCheckbox > label > div[data-testid="stCheckbox"] > div {
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+    }
+    
+    .stCheckbox > label > div[data-testid="stCheckbox"] > div > div {
+        color: white !important;
+    }
+    
+    /* 체크박스 호버 효과 */
+    .stCheckbox > label:hover > div[data-testid="stCheckbox"] > div {
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+    }
+    
+    /* 추가 체크박스 스타일링 */
+    .stCheckbox > label > div > div > div {
+        border-color: #3b82f6 !important;
+    }
+    
+    /* 체크표시 색상 */
+    .stCheckbox > label > div > div > div > svg {
+        color: white !important;
+        fill: white !important;
+    }
+    
+    /* 체크된 상태 */
+    .stCheckbox > label > div > div[data-checked="true"] {
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
     }
     
     .section-title {
@@ -89,10 +166,25 @@ def main():
         gap: 1rem;
         margin: 2rem 0;
     }
+    
+    .select-all-btn {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        margin: 0.5rem 0.5rem 0.5rem 0;
+    }
+    
+    .select-all-btn:hover {
+        background: #2563eb;
+    }
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown('<div class="main-header">전기차 vs 일반차 비율 분석</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">국내 전기차 지역별 비율 분석</div>', unsafe_allow_html=True)
     
     # 데이터 로드
     df = load_data()
@@ -101,26 +193,72 @@ def main():
     
     # 사이드바 필터
     with st.sidebar:
-        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
-        st.markdown("#### 필터 설정")
         
         # 연도 선택
+        st.markdown("**📅 연도 선택**")
         years = sorted(df['year'].unique())
-        selected_years = st.multiselect(
-            "연도 선택",
-            options=years,
-            default=years,
-            help="분석할 연도를 선택하세요"
-        )
+        
+        # 연도 전체 선택/해제 버튼
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("전체선택", key="select_all_years", help="모든 연도 선택"):
+                for year in years:
+                    st.session_state[f"year_{year}"] = True
+        with col2:
+            if st.button("전체해제", key="deselect_all_years", help="모든 연도 해제"):
+                for year in years:
+                    st.session_state[f"year_{year}"] = False
+        
+        # 연도 체크박스들 (2열로 배치)
+        st.markdown('<div class="checkbox-grid">', unsafe_allow_html=True)
+        year_cols = st.columns(2)
+        selected_years = []
+        
+        for i, year in enumerate(years):
+            if f"year_{year}" not in st.session_state:
+                st.session_state[f"year_{year}"] = True  # 기본값: 선택됨
+            
+            with year_cols[i % 2]:
+                if st.checkbox(f"{year}년", key=f"year_{year}", value=st.session_state[f"year_{year}"]):
+                    selected_years.append(year)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown("---")
         
         # 지역 선택
+        st.markdown("**🗺️ 지역 선택**")
         regions = sorted(df['region'].unique())
-        selected_regions = st.multiselect(
-            "지역 선택",
-            options=regions,
-            default=regions,
-            help="분석할 지역을 선택하세요"
-        )
+        
+        # 지역 전체 선택/해제 버튼
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("전체선택", key="select_all_regions", help="모든 지역 선택"):
+                for region in regions:
+                    st.session_state[f"region_{region}"] = True
+        with col2:
+            if st.button("전체해제", key="deselect_all_regions", help="모든 지역 해제"):
+                for region in regions:
+                    st.session_state[f"region_{region}"] = False
+        
+        # 지역 체크박스들 (3열로 배치)
+        st.markdown('<div class="checkbox-grid-triple checkbox-container">', unsafe_allow_html=True)
+        region_cols = st.columns(3)
+        selected_regions = []
+        
+        for i, region in enumerate(regions):
+            if f"region_{region}" not in st.session_state:
+                st.session_state[f"region_{region}"] = True  # 기본값: 선택됨
+            
+            with region_cols[i % 3]:
+                if st.checkbox(region, key=f"region_{region}", value=st.session_state[f"region_{region}"]):
+                    selected_regions.append(region)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # 선택된 항목 수 표시
+        st.markdown("---")
+        st.markdown(f"**선택된 연도:** {len(selected_years)}개")
+        st.markdown(f"**선택된 지역:** {len(selected_regions)}개")
+        
         st.markdown('</div>', unsafe_allow_html=True)
     
     # 데이터 필터링
@@ -290,19 +428,6 @@ def main():
             )
             fig6.update_layout(height=400)
             st.plotly_chart(fig6, use_container_width=True)
-        
-        # 상관관계 분석
-        st.markdown('<div class="section-title">상관관계 분석</div>', unsafe_allow_html=True)
-        corr_data = filtered_df[['general_cars', 'electric_cars', 'total_cars', 'ev_ratio']].corr()
-        
-        fig7 = px.imshow(
-            corr_data,
-            title="변수 간 상관관계",
-            color_continuous_scale='RdBu',
-            aspect='auto'
-        )
-        fig7.update_layout(height=400)
-        st.plotly_chart(fig7, use_container_width=True)
     
     with tab4:
         st.markdown('<div class="section-title">데이터 테이블</div>', unsafe_allow_html=True)
