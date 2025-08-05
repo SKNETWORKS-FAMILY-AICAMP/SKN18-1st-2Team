@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS veh_fuel_stats(
     hybrid int(30),
     elec int(30),
     hydrogen int(30),
-    PRIMARY KEY(year,elec)
+    PRIMARY KEY(year)
 );
 
 
