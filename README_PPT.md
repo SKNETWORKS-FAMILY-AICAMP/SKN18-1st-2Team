@@ -33,7 +33,12 @@ Team Name : sknproject18기 2조
 - 자동차 등록 현황 조회 시스템
 - FAQ 검색 및 질문 응답 시스템
 - 시각화 및 사용자 UI
-
+  
+- FAQ 화면
+  - https://www.figma.com/proto/rFGqdQnarW8cZv3gxb2tur/Untitled?node-id=2009-6011&t=mStwHTBiasRxyGCz-1&scaling=contain&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=17%3A15
+- 자동차등록현황 분석 화면
+  - <img width="450" alt="image" src="https://github.com/user-attachments/assets/3726c9b3-b6dd-4e81-8dcc-3c171f255774" />
+  
 
 ### 수집 데이터
 - 전기차 등록 현황 사이트 : https://chargeinfo.ksga.org/front/statistics/evCar/
