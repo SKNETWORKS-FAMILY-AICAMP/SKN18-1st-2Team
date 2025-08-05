@@ -292,17 +292,17 @@ def main():
             st.plotly_chart(fig6, use_container_width=True)
         
         # 상관관계 분석
-        st.markdown('<div class="section-title">상관관계 분석</div>', unsafe_allow_html=True)
-        corr_data = filtered_df[['general_cars', 'electric_cars', 'total_cars', 'ev_ratio']].corr()
+        # st.markdown('<div class="section-title">상관관계 분석</div>', unsafe_allow_html=True)
+        # corr_data = filtered_df[['general_cars', 'electric_cars', 'total_cars', 'ev_ratio']].corr()
         
-        fig7 = px.imshow(
-            corr_data,
-            title="변수 간 상관관계",
-            color_continuous_scale='RdBu',
-            aspect='auto'
-        )
-        fig7.update_layout(height=400)
-        st.plotly_chart(fig7, use_container_width=True)
+        # fig7 = px.imshow(
+        #     corr_data,
+        #     title="변수 간 상관관계",
+        #     color_continuous_scale='RdBu',
+        #     aspect='auto'
+        # )
+        # fig7.update_layout(height=400)
+        # st.plotly_chart(fig7, use_container_width=True)
     
     with tab4:
         st.markdown('<div class="section-title">데이터 테이블</div>', unsafe_allow_html=True)
