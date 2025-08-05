@@ -4,8 +4,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from PIL import Image
 from streamlit_image_coordinates import streamlit_image_coordinates
-import pymysql
 from db.db_utils import load_veh_fuel_stats, load_ev_brand_stats, load_ev_region_stats, load_car_registration_stats, load_ev_yearly_stats
+from pages.ev_rate import show_ev_rate
 
 
 # ---------------- DB 연결 ----------------
@@ -75,8 +75,11 @@ def get_region_from_click_px(x, y):
 
 # ---------------- 지도 이미지 로딩 ----------------
 def load_map_image():
-    """지도 이미지 로드 (pages/map.png)"""
-    map_img_path = os.path.join(os.path.dirname(__file__), "map.png")
+    # """지도 이미지 로드 (pages/map.png)"""
+    # map_img_path = os.path.join(os.path.dirname(__file__), "map.png")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    map_img_path = os.path.join(project_root, "resources", "images", "map2.png")
+    
     if not os.path.exists(map_img_path):
         return None
     map_img = Image.open(map_img_path)
@@ -280,11 +283,9 @@ def prepare_kia_chart(kia_df):
         st.error(f"기아 차트 생성 오류: {e}")
         print(f"차트 오류 상세: {e}")
         return go.Figure()
-
-
-
-# ---------------- 메인 앱 ----------------
-def show_car_info():
+   
+# ------------- car-info ------------- 
+def make_car_info():
     st.set_page_config(page_title="전기자동차 지역별 증가 분석", layout="wide")
 
     df_region = load_ev_yearly_stats()
@@ -339,6 +340,12 @@ def show_car_info():
             st.plotly_chart(region_ev_stats_chart(region_data), use_container_width=True)
         else:
             st.warning(f"{region} 지역의 데이터가 없습니다.")
+
+
+# ---------------- 메인 앱 ----------------
+def show_car_info():
+    make_car_info()
+    show_ev_rate()
 
 if __name__ == "__main__":
     show_car_info()
