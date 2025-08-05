@@ -7,6 +7,7 @@ from streamlit_image_coordinates import streamlit_image_coordinates
 import pymysql
 from db.db_utils import load_veh_fuel_stats, load_ev_brand_stats, load_ev_region_stats, load_car_registration_stats, load_ev_yearly_stats
 
+
 # ---------------- DB 연결 ----------------
 def get_region_ev_summary(region):
     df_car = load_car_registration_stats()
@@ -161,16 +162,16 @@ def region_ev_stats_chart(region_data):
 # ---------------- 차트 ----------------
 def prepare_donut_chart(df_region):
     try:
-        df_2024 = df_region[df_region["year"] == 2024]
+        df_2024 = df_region[df_region["year"] == "2024"]
         if df_2024.empty:
             st.warning("2024년 데이터가 없습니다.")
             return go.Figure()
             
-        grouped = df_2024.groupby("region")["elec"].sum().reset_index()
+        grouped = df_2024.groupby("region")["total"].sum().reset_index()
 
         fig = go.Figure(data=[go.Pie(
             labels=grouped["region"],
-            values=grouped["elec"],
+            values=grouped["total"],
             hole=0.6,
             textinfo='label+percent',
             showlegend=False,
@@ -179,7 +180,8 @@ def prepare_donut_chart(df_region):
                                 "#FFC8DD", "#BDE0FE", "#FFADAD", "#FDFFB6", "#CAFFBF", 
                                 "#9BF6FF", "#A0C4FF"])
         )])
-        fig.update_layout(title_text="지역별 전기차 비율 (2024년)")
+        fig.update_layout(title_text="지역별 전기차 비율 (2024년 기준)", margin=dict(t=100, l=80, r=150, b=50))
+        fig.update_traces(domain=dict(x=[0, 1], y=[0, 1]), textposition='inside')
         return fig
     except Exception as e:
         st.error(f"도넛 차트 생성 오류: {e}")
@@ -220,7 +222,7 @@ def prepare_kia_chart(kia_df):
 def show_car_info():
     st.set_page_config(page_title="전기자동차 지역별 증가 분석", layout="wide")
 
-    df_region = load_ev_region_stats()
+    df_region = load_ev_yearly_stats()
     df_brand = load_ev_brand_stats()
     df_fuel = load_veh_fuel_stats()
     kia_df = prepare_kia_df(df_brand)
