@@ -9,3 +9,6 @@ beautifulsoup4
 requests
 plotly
 openpyxl
+pillow
+streamlit-image-coordinates
+prophet

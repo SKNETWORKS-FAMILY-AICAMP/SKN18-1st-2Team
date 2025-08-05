@@ -2,7 +2,10 @@ import streamlit as st
 from pages.ev_stats import show_ev_stats
 from pages.faq import show_faq
 from pages.ev_vs_general_comparison import main as show_ev_comparison
+from pages.car_info import show_car_info
 from pages.tool_page import show_tool_page
+from pages.ev_rate import show_ev_rate
+
 
 st.markdown("""
     <style>
