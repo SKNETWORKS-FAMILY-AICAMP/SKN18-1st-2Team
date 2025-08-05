@@ -1,8 +1,7 @@
 # 단위프로젝트 2팀 PT
 ## 전국 자동차 등록 현황 및 기업 FAQ 조회 시스템 
 
-## Team Information
-
+### Team Information
 Team Name : sknproject18기 2조
 
 |  이름  	| 역 할 	| 세부 역할 	|     Github    	|
@@ -13,21 +12,19 @@ Team Name : sknproject18기 2조
 | 양진아 	| 팀원  	| 등록 현황 	| @JINA1003 	|
 | 이태호 	| 팀원  	| 등록 현황 	| @william7333     	|
 
-Stacks 📚
-Environment
-!Visual Studio Code
-!Git
-!Github
 
-Development
-!Python 
-!MySQL
-!Streamlit
-!Docker
-
-
-Communication
-!Discord 
+### Stacks :books:
+- Environment
+![Visual Studio Code](https://img.shields.io/badge/Visual%20Studio%20Code-007ACC?style=for-the-badge&logo=Visual%20Studio%20Code&logoColor=white)
+![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=Git&logoColor=white)
+![Github](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=GitHub&logoColor=white)             
+- Development
+![Python](https://img.shields.io/badge/python-3776AB?style=for-the-badge&logo=python&logoColor=white) 
+![MySQL](https://img.shields.io/badge/mysql-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Streamlit](https://img.shields.io/badge/streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+- Communication
+![Discord](https://img.shields.io/badge/discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)
 
 
 ### 요구사항 
@@ -37,31 +34,47 @@ Communication
 - FAQ 검색 및 질문 응답 시스템
 - 시각화 및 사용자 UI
 
+
 ### 수집 데이터
 - 전기차 등록 현황 사이트 : https://chargeinfo.ksga.org/front/statistics/evCar/
 - 국토교통부 250122(석간)자동차누적등록대수_26_298천대(자동차운영보험과).pdf
 - 자동차등록현황보고 : https://stat.molit.go.kr/portal/cate/statMetaView.do?hRsId=58
 - Kia FAQ 사이트: https://www.kia.com/kr/customer-service/center/faq
 
+
 ### ERD
 <img width="656" height="438" alt="스크린샷 2025-08-05 10 30 04" src="https://github.com/user-attachments/assets/e5a75aa7-42fc-4018-b0d0-b358801ddbd0" />
 
+
 ### 화면 구성
-- <img width="216" height="192" alt="image" src="https://github.com/user-attachments/assets/98a68263-74d4-41eb-8667-4e89fc6f2853" />
+1. 메뉴 구성
+<img width="216" height="192" alt="image" src="https://github.com/user-attachments/assets/98a68263-74d4-41eb-8667-4e89fc6f2853" />
+
+2. 메뉴1 : 전기차 등록 현황
+<img width="3536" height="5836" alt="image" src="https://github.com/user-attachments/assets/963f6cb5-7f9a-47f9-a781-ec19a318a523" />
+
+3. 메뉴2 : 전기차 vs 일반차 비율 분석
+<img width="3536" height="3838" alt="image" src="https://github.com/user-attachments/assets/a5b910e9-3aed-4917-a0ba-34a428dcb458" />
+
+4. 메뉴3 : FAQ
+<img width="1275" height="931" alt="image" src="https://github.com/user-attachments/assets/4e30d987-95ba-4e58-9b34-02e4e8853089" />
+
+5. 메뉴4 : 데이터 도구
+<img width="1788" height="670" alt="image" src="https://github.com/user-attachments/assets/1cf51894-4b21-4eb4-9db7-37260b963baf" />
 
 
 ### 인사이트
 1. 전기차 등록 비율의 상승
-전기차 등록 데이터 분석을 통해 최근 5년 사이 꾸준한 성장세가 확인됨.
+- 전기차 등록 데이터 분석을 통해 최근 5년 사이 꾸준한 성장세가 확인됨.
 
 2. 지역별 자동차 등록 현황 차이
-전국 단위 자동차 등록 현황 데이터를 비교한 결과:
-경기도, 서울, 부산이 등록대수 상위 지역.
-반면 세종, 제주, 강원 등은 전체 등록대수는 적지만, 전기차 비율이 상대적으로 높음.
+- 전국 단위 자동차 등록 현황 데이터를 비교한 결과:
+- 경기도, 서울, 부산이 등록대수 상위 지역.
+- 반면 세종, 제주, 강원 등은 전체 등록대수는 적지만, 전기차 비율이 상대적으로 높음.
 
-3.연도별 등록 추세 분석
-연도별 자동차 전체 등록대수와 전기차 등록대수의 추세 비교를 통해:
-전체 자동차 등록 증가율은 둔화, 반면 전기차는 연평균 두 자릿수 성장률 유지.
+3. 연도별 등록 추세 분석
+- 연도별 자동차 전체 등록대수와 전기차 등록대수의 추세 비교를 통해:
+- 전체 자동차 등록 증가율은 둔화, 반면 전기차는 연평균 두 자릿수 성장률 유지.
 
 
 ### 오류 목록
